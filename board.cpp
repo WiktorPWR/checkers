@@ -287,22 +287,32 @@ std::vector<Move> get_all_moves(bool team)
             if ((team && board[i][j]->value == 1) || (!team && board[i][j]->value == -1))
             {
                 Actions actions = pawn_actions(i, j, team);
-                
+
+                bool promote = false;
+                if (team)
+                {
+                    promote = (i + 1 == ROWS - 1);
+                }
+                else
+                {
+                    promote = (i - 1 == 0);
+                }
+
                 if (actions.can_move_left)
                 {
-                    all_moves.push_back({i, j, team ? i + 1 : i - 1, j - 1});
+                    all_moves.push_back({i, j, team ? i + 1 : i - 1, j - 1, promote});
                 }
                 if (actions.can_move_right)
                 {
-                    all_moves.push_back({i, j, team ? i + 1 : i - 1, j + 1});
+                    all_moves.push_back({i, j, team ? i + 1 : i - 1, j + 1, promote});
                 }
                 if (actions.can_capture_left)
                 {
-                    all_moves.push_back({i, j, team ? i + 2 : i - 2, j - 2});
+                    all_moves.push_back({i, j, team ? i + 2 : i - 2, j - 2, promote});
                 }
                 if (actions.can_capture_right)
                 {
-                    all_moves.push_back({i, j, team ? i + 2 : i - 2, j + 2});
+                    all_moves.push_back({i, j, team ? i + 2 : i - 2, j + 2, promote});
                 }
             }
         }
@@ -310,4 +320,17 @@ std::vector<Move> get_all_moves(bool team)
 
     std::cout << "Dla drużyny " << (team ? "białych" : "czarnych") << " jest " << all_moves.size() << " możliwych akcji." << std::endl;
     return all_moves;
+}
+
+int evaluate_board()
+{
+    int score = 0;
+    for (int i = 0; i < ROWS; ++i)
+    {
+        for (int j = 0; j < COLUMNS; ++j)
+        {
+            score += board[i][j]->value;
+        }
+    }
+    return score;
 }

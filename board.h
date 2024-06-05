@@ -40,10 +40,11 @@ struct CaptureOption
 
 struct Move
 {
-    int from_row;
-    int from_col;
-    int to_row;
-    int to_col;
+    int from_row;   // Numer wiersza, z którego pionek się rusza
+    int from_col;   // Numer kolumny, z której pionek się rusza
+    int to_row;     // Numer wiersza, do którego pionek się rusza
+    int to_col;     // Numer kolumny, do której pionek się rusza
+    bool promote;   // Czy ruch powoduje promocję pionka
 };
 
 extern Spot* board[ROWS][COLUMNS];
@@ -57,5 +58,6 @@ std::vector<CaptureOption> get_capture_options(bool team);
 bool has_captures(bool team);
 bool game_over();
 std::vector<Move> get_all_moves(bool team);
+int evaluate_board();
 
 #endif // BOARD_H

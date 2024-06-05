@@ -1,4 +1,5 @@
 #include "../checkers/game.h"
+#include "../checkers/minimax.h"
 #include <iostream>
 #include <limits>
 
@@ -16,29 +17,112 @@ void play_game()
         while (!valid_action)
         {
             std::cout << "Teraz ruch ma " << (team ? "bialy" : "czarny") << " team." << std::endl;
-            std::cout << "DAWAJ JAKA AKCJE CHCESZ BYK 1.MOVE PAWN 2.STRIKE" << std::endl;
-            int action;
-            if (!(std::cin >> action))
+            if (team) // white
             {
-                std::cin.clear(); // clear the error flag
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // discard invalid input
-                std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
-                continue;
-            }
-            
-            int row, column;
-            bool L_R;
-
-            switch (action)
-            {
-            case 1:
-                if (has_captures(team))
+                std::cout << "DAWAJ JAKA AKCJE CHCESZ BYK 1.MOVE PAWN 2.STRIKE" << std::endl;
+                int action;
+                if (!(std::cin >> action))
                 {
-                    std::cout << "MUSISZ BIC" << std::endl;
+                    std::cin.clear(); // clear the error flag
+                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // discard invalid input
+                    std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
+                    continue;
                 }
-                else
+
+                int row, column;
+                bool L_R;
+
+                switch (action)
                 {
-                    std::cout << "PODAJ LOKALIZACJE PIONKA najpierw wiersz nastepnie kolumne" << std::endl;
+                case 1:
+                    if (has_captures(team))
+                    {
+                        std::cout << "MUSISZ BIC" << std::endl;
+                    }
+                    else
+                    {
+                        std::cout << "PODAJ LOKALIZACJE PIONKA najpierw wiersz nastepnie kolumne" << std::endl;
+                        if (!(std::cin >> row >> column))
+                        {
+                            std::cin.clear();
+                            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            std::cout << "Nieprawidłowa lokalizacja. Spróbuj ponownie." << std::endl;
+                            break;
+                        }
+                        Actions result = pawn_actions(row, column, team);
+                        std::cout << "Możliwe akcje:" << std::endl;
+                        if (result.can_move_left)
+                            std::cout << "1. Ruch w lewo" << std::endl;
+                        if (result.can_move_right)
+                            std::cout << "2. Ruch w prawo" << std::endl;
+                        if (result.can_capture_left)
+                            std::cout << "3. Bicie w lewo" << std::endl;
+                        if (result.can_capture_right)
+                            std::cout << "4. Bicie w prawo" << std::endl;
+                        std::cout << "Wybierz akcję: ";
+                        int chosen_action;
+                        if (!(std::cin >> chosen_action))
+                        {
+                            std::cin.clear();
+                            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
+                            break;
+                        }
+                        switch (chosen_action)
+                        {
+                        case 1:
+                            if (result.can_move_left)
+                            {
+                                move_pawn(row, column, team, result, false);
+                                valid_action = true;
+                            }
+                            else
+                            {
+                                std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
+                            }
+                            break;
+                        case 2:
+                            if (result.can_move_right)
+                            {
+                                move_pawn(row, column, team, result, true);
+                                valid_action = true;
+                            }
+                            else
+                            {
+                                std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
+                            }
+                            break;
+                        case 3:
+                            if (result.can_capture_left)
+                            {
+                                strike_pawn(row, column, team, result, false);
+                                valid_action = true;
+                            }
+                            else
+                            {
+                                std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
+                            }
+                            break;
+                        case 4:
+                            if (result.can_capture_right)
+                            {
+                                strike_pawn(row, column, team, result, true);
+                                valid_action = true;
+                            }
+                            else
+                            {
+                                std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
+                            }
+                            break;
+                        default:
+                            std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
+                            break;
+                        }
+                    }
+                    break;
+
+                case 2:
+                    std::cout << "Podaj lokalizacje pionka najpierw wiersz nastepnie kolumne" << std::endl;
                     if (!(std::cin >> row >> column))
                     {
                         std::cin.clear();
@@ -48,14 +132,10 @@ void play_game()
                     }
                     Actions result = pawn_actions(row, column, team);
                     std::cout << "Możliwe akcje:" << std::endl;
-                    if (result.can_move_left)
-                        std::cout << "1. Ruch w lewo" << std::endl;
-                    if (result.can_move_right)
-                        std::cout << "2. Ruch w prawo" << std::endl;
                     if (result.can_capture_left)
-                        std::cout << "3. Bicie w lewo" << std::endl;
+                        std::cout << "1. Bicie w lewo" << std::endl;
                     if (result.can_capture_right)
-                        std::cout << "4. Bicie w prawo" << std::endl;
+                        std::cout << "2. Bicie w prawo" << std::endl;
                     std::cout << "Wybierz akcję: ";
                     int chosen_action;
                     if (!(std::cin >> chosen_action))
@@ -68,28 +148,6 @@ void play_game()
                     switch (chosen_action)
                     {
                     case 1:
-                        if (result.can_move_left)
-                        {
-                            move_pawn(row, column, team, result, false);
-                            valid_action = true;
-                        }
-                        else
-                        {
-                            std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
-                        }
-                        break;
-                    case 2:
-                        if (result.can_move_right)
-                        {
-                            move_pawn(row, column, team, result, true);
-                            valid_action = true;
-                        }
-                        else
-                        {
-                            std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
-                        }
-                        break;
-                    case 3:
                         if (result.can_capture_left)
                         {
                             strike_pawn(row, column, team, result, false);
@@ -100,7 +158,7 @@ void play_game()
                             std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
                         }
                         break;
-                    case 4:
+                    case 2:
                         if (result.can_capture_right)
                         {
                             strike_pawn(row, column, team, result, true);
@@ -115,62 +173,40 @@ void play_game()
                         std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
                         break;
                     }
+                    break;
                 }
-                break;
+            }
+            else // black (AI)
+            {
+                Move best_move;
+                int best_value = std::numeric_limits<int>::min();
 
-            case 2:
-                std::cout << "Podaj lokalizacje pionka najpierw wiersz nastepnie kolumne" << std::endl;
-                if (!(std::cin >> row >> column))
+                std::vector<Move> moves = get_all_moves(team);
+                for (const Move& move : moves)
                 {
-                    std::cin.clear();
-                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                    std::cout << "Nieprawidłowa lokalizacja. Spróbuj ponownie." << std::endl;
-                    break;
+                    int from_value = board[move.from_row][move.from_col]->value;
+                    int to_value = board[move.to_row][move.to_col]->value;
+
+                    board[move.to_row][move.to_col]->value = from_value;
+                    board[move.from_row][move.from_col]->value = 0;
+
+                    int board_value = minimax(3, false);
+
+                    board[move.from_row][move.from_col]->value = from_value;
+                    board[move.to_row][move.to_col]->value = to_value;
+
+                    if (board_value > best_value)
+                    {
+                        best_value = board_value;
+                        best_move = move;
+                    }
                 }
-                Actions result = pawn_actions(row, column, team);
-                std::cout << "Możliwe akcje:" << std::endl;
-                if (result.can_capture_left)
-                    std::cout << "1. Bicie w lewo" << std::endl;
-                if (result.can_capture_right)
-                    std::cout << "2. Bicie w prawo" << std::endl;
-                std::cout << "Wybierz akcję: ";
-                int chosen_action;
-                if (!(std::cin >> chosen_action))
-                {
-                    std::cin.clear();
-                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                    std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
-                    break;
-                }
-                switch (chosen_action)
-                {
-                case 1:
-                    if (result.can_capture_left)
-                    {
-                        strike_pawn(row, column, team, result, false);
-                        valid_action = true;
-                    }
-                    else
-                    {
-                        std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
-                    }
-                    break;
-                case 2:
-                    if (result.can_capture_right)
-                    {
-                        strike_pawn(row, column, team, result, true);
-                        valid_action = true;
-                    }
-                    else
-                    {
-                        std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
-                    }
-                    break;
-                default:
-                    std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
-                    break;
-                }
-                break;
+
+                int from_value = board[best_move.from_row][best_move.from_col]->value;
+                board[best_move.to_row][best_move.to_col]->value = from_value;
+                board[best_move.from_row][best_move.from_col]->value = 0;
+
+                valid_action = true;
             }
         }
 
