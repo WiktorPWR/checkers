@@ -37,6 +37,13 @@ struct CaptureOption
     bool L_R; // true for right, false for left
 };
 
+struct Move {
+    int from_row;
+    int from_col;
+    int to_row;
+    int to_col;
+};
+
 Spot* board[ROWS][COLUMNS];
 
 void board_init();
@@ -46,6 +53,7 @@ void move_pawn(int row, int column, bool team, Actions result, bool L_R);
 void strike_pawn(int row, int column, bool team, Actions result, bool L_R);
 std::vector<CaptureOption> get_capture_options(bool team);
 bool has_captures(bool team);
+bool game_over();
 
 int main()
 {
@@ -55,7 +63,7 @@ int main()
 
     bool team = true; // true for white, false for black
 
-    while(white_pawns != 0 && black_pawns != 0)
+    while(white_pawns != 0 && black_pawns != 0 && !game_over())
     {
         bool valid_action = false;
         while (!valid_action)
@@ -223,6 +231,8 @@ int main()
         team = !team;
         print_board();
     }
+
+    std::cout << "Gra zakończona! " << (white_pawns == 0 ? "Czarne" : "Białe") << " wygrywają!" << std::endl;
 
     return 0;
 }
@@ -428,6 +438,49 @@ bool has_captures(bool team)
     return !get_capture_options(team).empty();
 }
 
+bool game_over()
+{
+    if (white_pawns == 0 || black_pawns == 0)
+    {
+        return true;
+    }
+
+    // Sprawdź, czy biały gracz ma możliwe ruchy
+    for (int i = 0; i < ROWS; ++i)
+    {
+        for (int j = 0; j < COLUMNS; ++j)
+        {
+            if (board[i][j]->value == 1)
+            {
+                Actions actions = pawn_actions(i, j, true);
+                if (actions.can_move_left || actions.can_move_right || actions.can_capture_left || actions.can_capture_right)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Sprawdź, czy czarny gracz ma możliwe ruchy
+    for (int i = 0; i < ROWS; ++i)
+    {
+        for (int j = 0; j < COLUMNS; ++j)
+        {
+            if (board[i][j]->value == -1)
+            {
+                Actions actions = pawn_actions(i, j, false);
+                if (actions.can_move_left || actions.can_move_right || actions.can_capture_left || actions.can_capture_right)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Jeśli żaden z graczy nie ma możliwych ruchów, gra jest zakończona
+    return true;
+}
+
 void print_board()
 {
     // Print column numbers
@@ -456,4 +509,40 @@ void print_board()
         }
         std::cout << std::endl;
     }
+}
+
+std::vector<Move> get_all_moves(bool team)
+{
+    std::vector<Move> all_moves;
+
+    for (int i = 0; i < ROWS; ++i)
+    {
+        for (int j = 0; j < COLUMNS; ++j)
+        {
+            if ((team && board[i][j]->value == 1) || (!team && board[i][j]->value == -1))
+            {
+                Actions actions = pawn_actions(i, j, team);
+                
+                if (actions.can_move_left)
+                {
+                    all_moves.push_back({i, j, team ? i + 1 : i - 1, j - 1});
+                }
+                if (actions.can_move_right)
+                {
+                    all_moves.push_back({i, j, team ? i + 1 : i - 1, j + 1});
+                }
+                if (actions.can_capture_left)
+                {
+                    all_moves.push_back({i, j, team ? i + 2 : i - 2, j - 2});
+                }
+                if (actions.can_capture_right)
+                {
+                    all_moves.push_back({i, j, team ? i + 2 : i - 2, j + 2});
+                }
+            }
+        }
+    }
+
+    std::cout << "Dla drużyny " << (team ? "białych" : "czarnych") << " jest " << all_moves.size() << " możliwych akcji." << std::endl;
+    return all_moves;
 }
