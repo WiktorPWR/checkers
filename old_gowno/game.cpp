@@ -1,7 +1,9 @@
-#include "../checkers/game.h"
-#include "../checkers/minimax.h"
+#include "game.h"
+#include "board.h"
 #include <iostream>
 #include <limits>
+#include "minimax.h"
+
 
 void play_game()
 {
@@ -14,11 +16,11 @@ void play_game()
     while(white_pawns != 0 && black_pawns != 0 && !game_over())
     {
         bool valid_action = false;
-        while (!valid_action)
+        if (team) // Player's turn (white)
         {
-            std::cout << "Teraz ruch ma " << (team ? "bialy" : "czarny") << " team." << std::endl;
-            if (team) // white
+            while (!valid_action)
             {
+                std::cout << "Teraz ruch ma " << (team ? "bialy" : "czarny") << " team." << std::endl;
                 std::cout << "DAWAJ JAKA AKCJE CHCESZ BYK 1.MOVE PAWN 2.STRIKE" << std::endl;
                 int action;
                 if (!(std::cin >> action))
@@ -30,12 +32,12 @@ void play_game()
                 }
 
                 int row, column;
-                bool L_R;
+                bool L_R, back;
 
                 switch (action)
                 {
                 case 1:
-                    if (has_captures(team))
+                    if (has_captures_bool(team))
                     {
                         std::cout << "MUSISZ BIC" << std::endl;
                     }
@@ -55,10 +57,10 @@ void play_game()
                             std::cout << "1. Ruch w lewo" << std::endl;
                         if (result.can_move_right)
                             std::cout << "2. Ruch w prawo" << std::endl;
-                        if (result.can_capture_left)
-                            std::cout << "3. Bicie w lewo" << std::endl;
-                        if (result.can_capture_right)
-                            std::cout << "4. Bicie w prawo" << std::endl;
+                        if (result.can_move_back_left)
+                            std::cout << "3. Ruch w tył w lewo" << std::endl;
+                        if (result.can_move_back_right)
+                            std::cout << "4. Ruch w tył w prawo" << std::endl;
                         std::cout << "Wybierz akcję: ";
                         int chosen_action;
                         if (!(std::cin >> chosen_action))
@@ -73,7 +75,7 @@ void play_game()
                         case 1:
                             if (result.can_move_left)
                             {
-                                move_pawn(row, column, team, result, false);
+                                move_pawn(row, column, team, result, false, false);
                                 valid_action = true;
                             }
                             else
@@ -84,7 +86,7 @@ void play_game()
                         case 2:
                             if (result.can_move_right)
                             {
-                                move_pawn(row, column, team, result, true);
+                                move_pawn(row, column, team, result, true, false);
                                 valid_action = true;
                             }
                             else
@@ -93,9 +95,9 @@ void play_game()
                             }
                             break;
                         case 3:
-                            if (result.can_capture_left)
+                            if (result.can_move_back_left)
                             {
-                                strike_pawn(row, column, team, result, false);
+                                move_pawn(row, column, team, result, false, true);
                                 valid_action = true;
                             }
                             else
@@ -104,9 +106,9 @@ void play_game()
                             }
                             break;
                         case 4:
-                            if (result.can_capture_right)
+                            if (result.can_move_back_right)
                             {
-                                strike_pawn(row, column, team, result, true);
+                                move_pawn(row, column, team, result, true, true);
                                 valid_action = true;
                             }
                             else
@@ -136,6 +138,10 @@ void play_game()
                         std::cout << "1. Bicie w lewo" << std::endl;
                     if (result.can_capture_right)
                         std::cout << "2. Bicie w prawo" << std::endl;
+                    if (result.can_capture_back_left)
+                        std::cout << "3. Bicie w tył w lewo" << std::endl;
+                    if (result.can_capture_back_right)
+                        std::cout << "4. Bicie w tył w prawo" << std::endl;
                     std::cout << "Wybierz akcję: ";
                     int chosen_action;
                     if (!(std::cin >> chosen_action))
@@ -150,7 +156,7 @@ void play_game()
                     case 1:
                         if (result.can_capture_left)
                         {
-                            strike_pawn(row, column, team, result, false);
+                            strike_pawn(row, column, team, result, false, false);
                             valid_action = true;
                         }
                         else
@@ -161,7 +167,29 @@ void play_game()
                     case 2:
                         if (result.can_capture_right)
                         {
-                            strike_pawn(row, column, team, result, true);
+                            strike_pawn(row, column, team, result, true, false);
+                            valid_action = true;
+                        }
+                        else
+                        {
+                            std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
+                        }
+                        break;
+                    case 3:
+                        if (result.can_capture_back_left)
+                        {
+                            strike_pawn(row, column, team, result, false, true);
+                            valid_action = true;
+                        }
+                        else
+                        {
+                            std::cout << "Nieprawidłowa akcja. Spróbuj ponownie." << std::endl;
+                        }
+                        break;
+                    case 4:
+                        if (result.can_capture_back_right)
+                        {
+                            strike_pawn(row, column, team, result, true, true);
                             valid_action = true;
                         }
                         else
@@ -176,39 +204,12 @@ void play_game()
                     break;
                 }
             }
-            else // black (AI)
-            {
-                Move best_move;
-                int best_value = std::numeric_limits<int>::min();
-
-                std::vector<Move> moves = get_all_moves(team);
-                for (const Move& move : moves)
-                {
-                    int from_value = board[move.from_row][move.from_col]->value;
-                    int to_value = board[move.to_row][move.to_col]->value;
-
-                    board[move.to_row][move.to_col]->value = from_value;
-                    board[move.from_row][move.from_col]->value = 0;
-
-                    int board_value = minimax(3, false);
-
-                    board[move.from_row][move.from_col]->value = from_value;
-                    board[move.to_row][move.to_col]->value = to_value;
-
-                    if (board_value > best_value)
-                    {
-                        best_value = board_value;
-                        best_move = move;
-                    }
-                }
-
-                int from_value = board[best_move.from_row][best_move.from_col]->value;
-                board[best_move.to_row][best_move.to_col]->value = from_value;
-                board[best_move.from_row][best_move.from_col]->value = 0;
-
-                valid_action = true;
-            }
         }
+        // else // AI's turn (black)
+        // {
+        //     //best_solution_max_player();
+        //     valid_action = true;
+        // }
 
         // Switch teams for next turn
         team = !team;
