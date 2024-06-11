@@ -1,6 +1,17 @@
 #ifndef GAME_H
 #define GAME_H
 
-void play_game();
+#include "board.h"
 
-#endif // GAME_H
+class Game {
+public:
+    Game();
+    void play();
+private:
+    Board board;
+    bool playerTurn;
+    void playerMove();
+    void computerMove();
+};
+
+#endif
